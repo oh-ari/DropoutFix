@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         :DROPOUT (If It Was Functional)
+// @name         :DROPOUT (If It Was More Functional)
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  It does things I wish :DROPOUT did. Maybe more to come.
