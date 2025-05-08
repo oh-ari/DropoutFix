@@ -106,25 +106,57 @@
         });
     }
 
+    // Okay so this part is basically handling the CC language.
+    // You can modify the language by changing the text in the if statement.
+
     // Handle the embed.vhx.tv player page.
     if (window.location.hostname === 'embed.vhx.tv') {
-        // Handle volume persistence! One of two major things!
+        // Function to find and enable English CC.
+        function enableEnglishCC() {
+            waitForElement('[data-cc-button]', ccButton => {
+                ccButton.click();
+                
+                // Wait for menu to appear and look for English option.
+                setTimeout(() => {
+                    const menuItems = document.querySelectorAll('[role="menuitemradio"]');
+                    let englishOption = null;
+                    
+                    // Look for any option containing "English" text.
+                    menuItems.forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        if (text.includes('english')) { // This is the 'if' statement you can modify.
+                            englishOption = item;
+                        }
+                    });
+                    
+                    if (englishOption) {
+                        englishOption.click();
+                        // Close menu after selection.
+                        setTimeout(() => ccButton.click(), 100);
+                    } else {
+                        // If no English option found, just close the menu.
+                        ccButton.click();
+                    }
+                }, 500);
+            });
+        }
+
+        // Handle volume persistence...
         waitForElement('.VolumeControl_module_volumeControl__a0c94891', volumeControl => {
             const volumeBar = volumeControl.querySelector('.VolumeControl_module_volumeBarFill__a0c94891');
             const volumeSlider = volumeControl.querySelector('.VolumeControl_module_sliderHandle__a0c94891');
 
-            // Set initial volume from stored value, otherwise deafening.
             const storedVolume = localStorage.getItem('dropoutVolume') || '50';
-
+            
             // Wait a bit for the player to be fully ready.
             setTimeout(() => {
-                // Simulate click at the stored volume position
+                // Simulate click at the stored volume position.
                 simulateClickAtPosition(volumeControl, parseFloat(storedVolume));
-
-                // Set visual elements
+                
+                // Set visual elements.
                 volumeBar.style.height = storedVolume + '%';
                 volumeSlider.style.bottom = storedVolume + '%';
-
+                
                 // Set aria values.
                 volumeControl.setAttribute('aria-valuenow', parseFloat(storedVolume));
                 volumeControl.setAttribute('aria-valuetext', `${parseFloat(storedVolume)}% volume`);
@@ -147,32 +179,16 @@
             });
         });
 
-        // Handle CC persistence! Because I apparently need to read to hear things sometimes.
-        waitForElement('[data-cc-button]', ccButton => {
-            const storedCC = localStorage.getItem('dropoutCC');
-            
-            if (storedCC !== null) {
-                // Wait a bit for the player to be fully ready again.
-                setTimeout(() => {
-                    // Click the CC button to open the menu.
-                    ccButton.click();
-                    
-                    // Find and click the stored CC option.
-                    waitForElement(`[data-id="${storedCC}"]`, ccOption => {
-                        ccOption.click();
-                        // Close the menu after selecting the option
-                        setTimeout(() => ccButton.click(), 100);
-                    });
-                }, 1000);
-            }
+        // Initial CC setup.
+        setTimeout(enableEnglishCC, 2000);
 
-            // Watch for CC changes...
-            document.addEventListener('click', e => {
-                const ccOption = e.target.closest('[role="menuitemradio"]');
-                if (ccOption && ccOption.closest('[data-menu="cc"]')) {
-                    localStorage.setItem('dropoutCC', ccOption.getAttribute('data-id'));
-                }
-            }, true);
-        });
+        // Watch specifically for video source changes to re-enable CC. (There was an issue where the CC settings were not being applied when the video changed.)
+        const videoElement = document.querySelector('video');
+        if (videoElement) {
+            videoElement.addEventListener('loadstart', () => {
+                // Wait for player to be ready after source change.
+                setTimeout(enableEnglishCC, 2000);
+            });
+        }
     }
 })();
