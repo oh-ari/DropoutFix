@@ -2,6 +2,13 @@
 
 Tired of the volume resetting and captions turning off every episode? I made a script to fix it. Install TamperMonkey or your favorite script extension to experience simple quality of life.
 
+## Features
+- Volume Persistence. (Volume stays the same as last episode.)
+
+- Captions Persistence. (Captions stay on!)
+
+- A 'Next Episode' button next to the Captions button.
+
 ### Installing
 
 #### Step 1: Install a Userscript Manager
