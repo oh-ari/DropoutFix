@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         :DROPOUT (If It Was More Functional)
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  It does things I wish :DROPOUT did. Maybe more to come.
 // @author       Ari
 // @match        https://www.dropout.tv/*
@@ -32,17 +32,20 @@
         const x = rect.left + (rect.width / 2);
         ['mousedown', 'mouseup'].forEach(type => {
             element.dispatchEvent(new MouseEvent(type, {
-                bubbles: true,
-                cancelable: true,
-                clientX: x,
-                clientY: y
+                bubbles: true, cancelable: true, clientX: x, clientY: y
             }));
         });
     };
 
     // Safely executes a function and logs any errors.
-    const safeExecute = fn => {
-        try { fn(); } catch (error) { console.log('DROPOUT Settings Error:', error); }
+    const safeExecute = fn => { try { fn(); } catch (error) { console.log('DROPOUT Settings Error:', error); } };
+
+    // Adds tooltip behavior to an element
+    const addTooltipBehavior = element => {
+        const tooltip = element.querySelector('[id$="-tooltip"]');
+        if (!tooltip) return;
+        ['mouseenter', 'focus'].forEach(e => element.addEventListener(e, () => tooltip.style.opacity = '1'));
+        ['mouseleave', 'blur'].forEach(e => element.addEventListener(e, () => tooltip.style.opacity = '0'));
     };
 
     // Creates a next episode button with tooltip and click handling.
@@ -60,11 +63,8 @@
                 <span id="next-episode-control-bar-button-tooltip" class="Tooltip_module_tooltip__d9b61844" aria-hidden="true" style="opacity: 0; left: calc(50% + 0px); right: auto; overflow: hidden; pointer-events: none;">Next Episode</span>
             </span>
         `;
-
-        const tooltip = () => nextButton.querySelector('#next-episode-control-bar-button-tooltip');
-        ['mouseenter', 'focus'].forEach(e => nextButton.addEventListener(e, () => { const t = tooltip(); if (t) t.style.opacity = '1'; }));
-        ['mouseleave', 'blur'].forEach(e => nextButton.addEventListener(e, () => { const t = tooltip(); if (t) t.style.opacity = '0'; }));
         
+        addTooltipBehavior(nextButton);
         nextButton.addEventListener('click', () => {
             window[isEmbed ? 'top' : ''].location.href = nextEpUrl;
         });
@@ -89,6 +89,49 @@
                     nextEpisode: nextEpUrl
                 }, 'https://embed.vhx.tv');
             }));
+            
+            // Lights OUT!
+            const style = document.createElement('style');
+            style.id = 'lights-out-style';
+            style.textContent = `
+                body.lights-out::before {
+                    content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                    background-color: rgba(0, 0, 0, 0.95); z-index: 5; pointer-events: none;
+                    transition: background-color 0.5s ease-in-out;
+                }
+                body::before {
+                    content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                    background-color: rgba(0, 0, 0, 0); z-index: 5; pointer-events: none;
+                    transition: background-color 0.5s ease-in-out;
+                }
+                #watch-player {
+                    background: #000; z-index: 10; position: relative;
+                    transition: none !important;
+                }
+                body.lights-out #watch-player {
+                    z-index: 10;
+                }
+                body.lights-out #watch-info,
+                body.lights-out .standard-width-container,
+                body.lights-out .site-footer,
+                body.lights-out .share-tools,
+                body.lights-out .context-link,
+                body.lights-out .video-title,
+                body.lights-out .badges-container,
+                body.lights-out .site-font-secondary-color,
+                body.lights-out section:not(#watch-player) {
+                    position: relative; z-index: 1 !important;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Create a message listener for lights out toggle.
+            window.addEventListener('message', event => {
+                if (event.origin !== 'https://embed.vhx.tv') return;
+                if (event.data.type === 'DROPOUT_LIGHTS_OUT_TOGGLE') {
+                    document.body.classList.toggle('lights-out', event.data.enabled);
+                }
+            });
         });
 
         // Handles the volume & CC settings.
@@ -192,6 +235,52 @@
                 volumeControl.setAttribute('aria-valuenow', parseFloat(currentVolume));
                 volumeControl.setAttribute('aria-valuetext', `${parseFloat(currentVolume)}% volume`);
             }).observe(volumeBar, { attributes: true, attributeFilter: ['style'] });
+        });
+
+        // Add lights out mode button.
+        waitForElement('[data-prefs-button]', prefsButton => {
+            const lightsOutButton = document.createElement('button');
+            lightsOutButton.type = 'button';
+            lightsOutButton.className = prefsButton.className;
+            lightsOutButton.setAttribute('tabindex', '0');
+            lightsOutButton.setAttribute('aria-label', 'Lights Out Mode');
+            lightsOutButton.setAttribute('id', 'lights-out-control-bar-button');
+            lightsOutButton.setAttribute('aria-labelledby', 'lights-out-control-bar-button-tooltip');
+            lightsOutButton.innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                    <path fill="#feea3b" d="M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M9,21V20H15V21A1,1 0 0,1 14,22H10A1,1 0 0,1 9,21M12,4A5,5 0 0,0 7,9C7,11.05 8.23,12.81 10,13.58V16H14V13.58C15.77,12.81 17,11.05 17,9A5,5 0 0,0 12,4Z"/>
+                </svg>
+                <span class="Button_module_buttonChildren__779846a6">
+                    <span id="lights-out-control-bar-button-tooltip" class="Tooltip_module_tooltip__d9b61844" aria-hidden="true" style="opacity: 0; left: calc(50% + 0px); right: auto; overflow: hidden; pointer-events: none;">Lights Out Mode</span>
+                </span>
+            `;
+            
+            // Handle lights out toggle.
+            let isLightsOut = localStorage.getItem('dropoutLightsOut') === 'true';
+            
+            // Function to toggle lights out mode
+            const toggleLightsOut = (state) => {
+                try {
+                    window.top.postMessage({
+                        type: 'DROPOUT_LIGHTS_OUT_TOGGLE',
+                        enabled: state
+                    }, 'https://www.dropout.tv');
+                } catch (e) {
+                    console.log('Failed to message parent window:', e);
+                }
+            };
+            
+            // Apply saved state on init.
+            if (isLightsOut) toggleLightsOut(true);
+            
+            lightsOutButton.addEventListener('click', () => {
+                isLightsOut = !isLightsOut;
+                localStorage.setItem('dropoutLightsOut', isLightsOut);
+                toggleLightsOut(isLightsOut);
+            });
+
+            addTooltipBehavior(lightsOutButton);
+            prefsButton.parentNode.insertBefore(lightsOutButton, prefsButton);
         });
 
         // And magic.
