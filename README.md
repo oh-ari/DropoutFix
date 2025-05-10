@@ -9,7 +9,7 @@ Tired of the volume resetting and captions turning off every episode? I made a s
 
 - A 'Next Episode' button next to the Captions button.
 
-- Lights Out Mode. (Dims the page around the video player.)
+- Lights Out Mode. (Dims the page around the video player. It is not great but it's something.)
 
 ### Installing
 
