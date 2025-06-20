@@ -1,5 +1,7 @@
 # :DROPOUT Quality of Life
 
+![image](https://github.com/user-attachments/assets/34bf1693-e55f-49f8-a45e-8e13d9c2c58d)
+
 Tired of the volume resetting and captions turning off every episode? I made a script to fix it. Install TamperMonkey or your favorite script extension to experience simple quality of life.
 
 ## Features
